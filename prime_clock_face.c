@@ -31,11 +31,10 @@
 
 // Each minute has one of three possible patterns based on modulus of hours + minutes
 const uint8_t lookup [ 3 ] [ 16 ] = { {1,7,11,13,17,19,23,29,31,37,41,43,47,49,53,59},
-	{1,3,7,9,13,19,21,27,31,33,37,39,43,49,51,57},
-	{3,9,11,17,21,23,27,29,33,39,41,47,51,53,57,59} };
+    {1,3,7,9,13,19,21,27,31,33,37,39,43,49,51,57},
+    {3,9,11,17,21,23,27,29,33,39,41,47,51,53,57,59} };
 
-// Each uint16_t contains one minute of data.
-// This is a binary bitfield ( 1 if prime ) for each of the 16 candidate numbers.
+// Each uint16_t contains one minute with it's 16 conceivable prime values
 const uint16_t primes_bitfield [ 1440 ] = {
 57342,60831,22500,62238,47977,19507,56635,55977,58102,22182,27512,12459,
 41945,  231,48098,59716,34045,44338, 4421,25365, 8909,20364,23638,24326,
@@ -162,37 +161,37 @@ const uint16_t primes_bitfield [ 1440 ] = {
 
 // Read an entry from the primes bitfield containing one minutes worth of bitwise data in a uint16_t.
 static void pc_read_bitfield(prime_clock_state_t *state, watch_date_time *date_time) {
-	uint8_t hours;
-	uint16_t tableIndex;
+    uint8_t hours;
+    uint16_t tableIndex;
 
-	hours = date_time->unit.hour;
-	if ( !state->mode_24h ) {
-		hours = hours % 12;
-		if ( hours == 0 ) hours = 12;
-	}
-	state->my_mod = ( hours + date_time->unit.minute ) % 3;		// There are three different 'pattern' types for a given minute.
-	tableIndex = hours * 60 + date_time->unit.minute;
-	state->seconds_bitfield = primes_bitfield [ tableIndex ];	// Exact bitfield for this minute
-	state->indexer = 0;		// Haven't started looking for next prime second yet.
-	state->next_required = true;	// We must calculate next prime second
-	state->this_minute_displayed = false;
+    hours = date_time->unit.hour;
+    if ( !state->mode_24h ) {
+        hours = hours % 12;
+        if ( hours == 0 ) hours = 12;
+    }
+    state->my_mod = ( hours + date_time->unit.minute ) % 3;		// There are three different 'pattern' types for a given minute.
+    tableIndex = hours * 60 + date_time->unit.minute;
+    state->seconds_bitfield = primes_bitfield [ tableIndex ];	// Exact bitfield for this minute
+    state->indexer = 0;		// Haven't started looking for next prime second yet.
+    state->next_required = true;	// We must calculate next prime second
+    state->this_minute_displayed = false;
 }
 
 // Calculate next prime second, starting/including current second
 static void pc_next_prime_second(prime_clock_state_t *state, watch_date_time *date_time) {
-	bool done = false;
-	state->next_prime_second = 61;		// In case there are no more this minute
-	while ( !done ) {
-		if ( lookup [ state->my_mod ] [ state->indexer ] >= date_time->unit.second ) {  // High enough, can use it if its prime.
-			if ( state->seconds_bitfield & ( 1 << state->indexer ) ) {	// It's prime, we're done.
-				state->next_prime_second = lookup [state->my_mod][ state->indexer ];
-				done = true;
-			}
-		}
-		state->indexer++;
-		if ( state->indexer > 15 ) done = true;
-	}
-	state->next_required = false;
+    bool done = false;
+    state->next_prime_second = 61;		// In case there are no more this minute
+    while ( !done ) {
+        if ( lookup [ state->my_mod ] [ state->indexer ] >= date_time->unit.second ) {  // High enough, can use it if its prime.
+            if ( state->seconds_bitfield & ( 1 << state->indexer ) ) {	// It's prime, we're done.
+                state->next_prime_second = lookup [state->my_mod][ state->indexer ];
+                done = true;
+            }
+        }
+        state->indexer++;
+        if ( state->indexer > 15 ) done = true;
+    }
+    state->next_required = false;
 }
 
 static void _update_alarm_indicator(bool settings_alarm_enabled, prime_clock_state_t *state) {
@@ -219,7 +218,7 @@ void prime_clock_face_activate(movement_settings_t *settings, void *context) {
     if (watch_tick_animation_is_running()) watch_stop_tick_animation();
 
     if (settings->bit.clock_mode_24h) watch_set_indicator(WATCH_INDICATOR_24H);
-	state->mode_24h = settings->bit.clock_mode_24h;
+        state->mode_24h = settings->bit.clock_mode_24h;
     // handle chime indicator
     if (state->signal_enabled) watch_set_indicator(WATCH_INDICATOR_BELL);
     else watch_clear_indicator(WATCH_INDICATOR_BELL);
@@ -231,9 +230,9 @@ void prime_clock_face_activate(movement_settings_t *settings, void *context) {
 
     // this ensures that none of the timestamp fields will match, so we can re-render them all.
     state->previous_date_time = 0xFFFFFFFF;
-	state->force_print = true;
-	state->this_minute_displayed = false;
-	state->this_hour_displayed = false;
+    state->force_print = true;
+    state->this_minute_displayed = false;
+    state->this_hour_displayed = false;
 }
 
 bool prime_clock_face_loop(movement_event_t event, movement_settings_t *settings, void *context) {
@@ -269,34 +268,34 @@ bool prime_clock_face_loop(movement_event_t event, movement_settings_t *settings
                 // everything before seconds is the same, don't waste cycles setting those segments.
                 if ( state->next_required ) pc_next_prime_second ( state, &date_time );
                 if ( date_time.unit.second == state->next_prime_second ) {
-					if ( state->this_minute_displayed ) {
+                    if ( state->this_minute_displayed ) {
                         watch_display_character_lp_seconds('0' + date_time.unit.second / 10, 8);
                         watch_display_character_lp_seconds('0' + date_time.unit.second % 10, 9);
-					} else if ( state->this_hour_displayed ) {
-						pos = 6;
+                    } else if ( state->this_hour_displayed ) {
+                        pos = 6;
                         sprintf(buf, "%02d%02d", date_time.unit.minute, date_time.unit.second);
                         watch_display_string(buf, pos);
-						state->this_minute_displayed = true;
-					} else {
-						pos = 4;
+                        state->this_minute_displayed = true;
+                    } else {
+                        pos = 4;
                         if (!settings->bit.clock_mode_24h) {
-						    date_time.unit.hour %= 12;
-						    if (date_time.unit.hour == 0) date_time.unit.hour = 12;
-					    }
+                            date_time.unit.hour %= 12;
+                            if (date_time.unit.hour == 0) date_time.unit.hour = 12;
+                        }
                         sprintf(buf, "%2d%02d%02d", date_time.unit.hour, date_time.unit.minute, date_time.unit.second);
                         watch_display_string(buf, pos);
-						state->this_minute_displayed = true;
-						state->this_hour_displayed = true;
-						watch_set_colon();
-					}
+                        state->this_minute_displayed = true;
+                        state->this_hour_displayed = true;
+                        watch_set_colon();
+                    }
                     state->next_required = true;	// We used this one up.
 				}
                 break;
             } else if ((date_time.reg >> 12) == (previous_date_time >> 12) && event.event_type != EVENT_LOW_ENERGY_UPDATE) {
                 // everything before minutes is the same - new minute, nothing to display just yet
-				pc_read_bitfield ( state, &date_time );
-				pc_next_prime_second ( state, &date_time );
-				break;
+                pc_read_bitfield ( state, &date_time );
+                pc_next_prime_second ( state, &date_time );
+                break;
             } else {
                 // other stuff changed; let's do it all.
                 if (!settings->bit.clock_mode_24h) {
@@ -309,28 +308,28 @@ bool prime_clock_face_loop(movement_event_t event, movement_settings_t *settings
                     date_time.unit.hour %= 12;
                     if (date_time.unit.hour == 0) date_time.unit.hour = 12;
                 }
-				pc_read_bitfield ( state, &date_time );
-				state->this_hour_displayed = false;
-				pc_next_prime_second ( state, &date_time );
+                pc_read_bitfield ( state, &date_time );
+                state->this_hour_displayed = false;
+                pc_next_prime_second ( state, &date_time );
                 pos = 0;
                 if (event.event_type == EVENT_LOW_ENERGY_UPDATE) {
                     if (!watch_tick_animation_is_running()) watch_start_tick_animation(500);
                     sprintf(buf, "%s%2d%2d%02d  ", watch_utility_get_weekday(date_time), date_time.unit.day, date_time.unit.hour, date_time.unit.minute);
-					state->this_minute_displayed = true;
-					state->this_hour_displayed = true;
+                    state->this_minute_displayed = true;
+                    state->this_hour_displayed = true;
                 } else {
-					if ( date_time.unit.second == state->next_prime_second ) {
-						sprintf(buf, "%s%2d%2d%02d%02d", watch_utility_get_weekday(date_time), date_time.unit.day, date_time.unit.hour, date_time.unit.minute, date_time.unit.second);
-						state->next_required = true;
-						state->this_minute_displayed = true;
-						state->this_hour_displayed = true;
-					} else if ( state->force_print ) {
-							sprintf(buf, "%s%2d%2d%02d--", watch_utility_get_weekday(date_time), date_time.unit.day, date_time.unit.hour, date_time.unit.minute);
-							state->force_print = false;
-                            state->this_minute_displayed = true;
-                            state->this_hour_displayed = true;
-					}
-					else break;		
+                    if ( date_time.unit.second == state->next_prime_second ) {
+                        sprintf(buf, "%s%2d%2d%02d%02d", watch_utility_get_weekday(date_time), date_time.unit.day, date_time.unit.hour, date_time.unit.minute, date_time.unit.second);
+                        state->next_required = true;
+                        state->this_minute_displayed = true;
+                        state->this_hour_displayed = true;
+                    } else if ( state->force_print ) {
+                        sprintf(buf, "%s%2d%2d%02d--", watch_utility_get_weekday(date_time), date_time.unit.day, date_time.unit.hour, date_time.unit.minute);
+                        state->force_print = false;
+                        state->this_minute_displayed = true;
+                        state->this_hour_displayed = true;
+                    }
+                    else break;		
                 }
             }
             watch_display_string(buf, pos);
@@ -338,22 +337,17 @@ bool prime_clock_face_loop(movement_event_t event, movement_settings_t *settings
             if (state->alarm_enabled != settings->bit.alarm_enabled) _update_alarm_indicator(settings->bit.alarm_enabled, state);
             break;
         case EVENT_ALARM_LONG_PRESS:
-			watch_display_string ( "SPEnCr", 4 );	// Or better, put your name here.
+            watch_display_string ( "rALPh ", 4 );	// Or better, put your name here!
             state->this_minute_displayed = false;
             state->this_hour_displayed = false;
-			watch_clear_colon();
-/*
-            state->signal_enabled = !state->signal_enabled;
-            if (state->signal_enabled) watch_set_indicator(WATCH_INDICATOR_BELL);
-            else watch_clear_indicator(WATCH_INDICATOR_BELL);
-*/
+            watch_clear_colon();
             break;
         case EVENT_LIGHT_LONG_PRESS:
-			watch_display_string ( "2024MA", 4 );	// Version date.
+            watch_display_string ( "2024SE", 4 );	// Version date.
             state->this_minute_displayed = false;
             state->this_hour_displayed = false;
-			watch_clear_colon();
-			break;
+            watch_clear_colon();
+            break;
         case EVENT_BACKGROUND_TASK:
             // uncomment this line to snap back to the clock face when the hour signal sounds:
             // movement_move_to_face(state->watch_face_index);
